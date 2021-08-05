@@ -125,6 +125,7 @@ export function createAppAPI<HostElement>(
   render: RootRenderFunction,
   hydrate?: RootHydrateFunction
 ): CreateAppFunction<HostElement> {
+  // createApp createApp 方法接受的两个参数：根组件的对象和根组件props
   return function createApp(rootComponent, rootProps = null) {
     if (rootProps != null && !isObject(rootProps)) {
       __DEV__ && warn(`root props passed to app.mount() must be an object.`)
@@ -231,6 +232,7 @@ export function createAppAPI<HostElement>(
         isSVG?: boolean
       ): any {
         if (!isMounted) {
+          // 创建根组件的 vnode
           const vnode = createVNode(
             rootComponent as ConcreteComponent,
             rootProps
@@ -249,6 +251,7 @@ export function createAppAPI<HostElement>(
           if (isHydrate && hydrate) {
             hydrate(vnode as VNode<Node, Element>, rootContainer as any)
           } else {
+            // 利用渲染器渲染 vnode
             render(vnode, rootContainer, isSVG)
           }
           isMounted = true
