@@ -276,24 +276,27 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
     // prototype) to memoize what access type a key corresponds to.
     let normalizedProps
     if (key[0] !== '$') {
+      // 渲染代理的属性访问缓存中
       const n = accessCache![key]
       if (n !== undefined) {
         switch (n) {
-          case AccessTypes.SETUP:
+          case AccessTypes.SETUP: //0
             return setupState[key]
-          case AccessTypes.DATA:
+          case AccessTypes.DATA: // 1
             return data[key]
-          case AccessTypes.CONTEXT:
+          case AccessTypes.CONTEXT: // 3
             return ctx[key]
-          case AccessTypes.PROPS:
+          case AccessTypes.PROPS: //2
             return props![key]
           // default: just fallthrough
         }
       } else if (setupState !== EMPTY_OBJ && hasOwn(setupState, key)) {
         accessCache![key] = AccessTypes.SETUP
+        // 从 setupState 中取数据
         return setupState[key]
       } else if (data !== EMPTY_OBJ && hasOwn(data, key)) {
         accessCache![key] = AccessTypes.DATA
+        // 从 data 中取数据
         return data[key]
       } else if (
         // only cache other properties when instance has declared (thus stable)
@@ -302,9 +305,11 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
         hasOwn(normalizedProps, key)
       ) {
         accessCache![key] = AccessTypes.PROPS
+        // 从 props 中取数据
         return props![key]
       } else if (ctx !== EMPTY_OBJ && hasOwn(ctx, key)) {
         accessCache![key] = AccessTypes.CONTEXT
+        // 从 ctx 中取数据
         return ctx[key]
       } else if (!__FEATURE_OPTIONS_API__ || shouldCacheAccess) {
         accessCache![key] = AccessTypes.OTHER
@@ -328,6 +333,7 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
       return cssModule
     } else if (ctx !== EMPTY_OBJ && hasOwn(ctx, key)) {
       // user may set custom properties to `this` that start with `$`
+      // 用户自定义的属性，也用 `$` 开头
       accessCache![key] = AccessTypes.CONTEXT
       return ctx[key]
     } else if (

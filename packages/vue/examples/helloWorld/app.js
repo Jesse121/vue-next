@@ -1,4 +1,9 @@
-import { onBeforeMount, onMounted, ref } from '../../dist/vue.esm-browser.js'
+import {
+  onBeforeMount,
+  onMounted,
+  ref,
+  computed
+} from '../../dist/vue.esm-browser.js'
 
 const HelloWorld = {
   name: 'HelloWorld',
@@ -15,22 +20,31 @@ const HelloWorld = {
 
 export default {
   name: 'App',
-  props: {
-    type: Object,
-    default: () => ({
-      name: 'jesse'
-    })
-  },
-  components: {
-    HelloWorld
-  },
-  template: '<div tId=1><p>主页</p><HelloWorld/></div>',
+  // props: {
+  //   type: Object,
+  //   default: () => ({
+  //     name: 'jesse'
+  //   })
+  // },
+  // components: {
+  //   HelloWorld
+  // },
+  template:
+    '<div tId=1><p>{{plusOne}}</p><button @click="plus">plus</button></div>',
+
   setup() {
-    onBeforeMount(() => {
-      console.log('beforeMount')
+    const count = ref(0)
+    const plusOne = computed(() => {
+      debugger
+      return count.value + 1
     })
-    onMounted(() => {
-      console.log('onMounted')
-    })
+
+    function plus() {
+      count.value++
+    }
+    return {
+      plusOne,
+      plus
+    }
   }
 }

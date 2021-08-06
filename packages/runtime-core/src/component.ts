@@ -411,27 +411,28 @@ export function createComponentInstance(
 ) {
   const type = vnode.type as ConcreteComponent
   // inherit parent app context - or - if root, adopt from root vnode
+  //继承父组件实例上的 appContext，如果是根组件，则直接从根 vnode 中取。
   const appContext =
     (parent ? parent.appContext : vnode.appContext) || emptyAppContext
 
   const instance: ComponentInternalInstance = {
-    uid: uid++,
+    uid: uid++, // 组件唯一 id
     vnode,
-    type,
+    type, // vnode 节点类型
     parent,
     appContext,
-    root: null!, // to be immediately set
-    next: null,
-    subTree: null!, // will be set synchronously right after creation
-    update: null!, // will be set synchronously right after creation
-    render: null,
-    proxy: null,
+    root: null!, // to be immediately set // 根组件实例
+    next: null, // 新的组件 vnode
+    subTree: null!, // will be set synchronously right after creation // 子节点 vnode
+    update: null!, // will be set synchronously right after creation // 带副作用更新函数
+    render: null, // 渲染函数
+    proxy: null, // 渲染上下文代理
     exposed: null,
-    withProxy: null,
-    effects: null,
+    withProxy: null, // 带有 with 区块的渲染上下文代理
+    effects: null, // 响应式相关对象
     provides: parent ? parent.provides : Object.create(appContext.provides),
-    accessCache: null!,
-    renderCache: [],
+    accessCache: null!, // 渲染代理的属性访问缓存
+    renderCache: [], // 渲染缓存
 
     // local resovled assets
     components: null,
@@ -483,12 +484,15 @@ export function createComponentInstance(
     rtc: null,
     ec: null
   }
+  // 初始化渲染上下文
   if (__DEV__) {
     instance.ctx = createRenderContext(instance)
   } else {
     instance.ctx = { _: instance }
   }
+  // 初始化根组件指针
   instance.root = parent ? parent.root : instance
+  // 初始化派发事件方法
   instance.emit = emit.bind(null, instance)
 
   return instance
@@ -529,10 +533,11 @@ export function setupComponent(
   isInSSRComponentSetup = isSSR
 
   const { props, children } = instance.vnode
+  // 判断是否是一个有状态的组件
   const isStateful = isStatefulComponent(instance)
   initProps(instance, props, isStateful, isSSR)
   initSlots(instance, children)
-
+  // 设置有状态的组件实例
   const setupResult = isStateful
     ? setupStatefulComponent(instance, isSSR)
     : undefined
@@ -567,6 +572,7 @@ function setupStatefulComponent(
   instance.accessCache = Object.create(null)
   // 1. create public instance / render proxy
   // also mark it raw so it's never observed
+  // 创建渲染上下文代理
   instance.proxy = new Proxy(instance.ctx, PublicInstanceProxyHandlers)
   if (__DEV__) {
     exposePropsOnRenderContext(instance)
@@ -574,11 +580,13 @@ function setupStatefulComponent(
   // 2. call setup()
   const { setup } = Component
   if (setup) {
+    // 如果 setup 函数带参数，则创建一个 setupContext
     const setupContext = (instance.setupContext =
       setup.length > 1 ? createSetupContext(instance) : null)
 
     currentInstance = instance
     pauseTracking()
+    // 执行 setup 函数，获取结果
     const setupResult = callWithErrorHandling(
       setup,
       instance,
@@ -593,6 +601,7 @@ function setupStatefulComponent(
         // return the promise so server-renderer can wait on it
         return setupResult
           .then((resolvedResult: unknown) => {
+            // 处理 setup 执行结果
             handleSetupResult(instance, resolvedResult, isSSR)
           })
           .catch(e => {
@@ -642,6 +651,7 @@ export function handleSetupResult(
     if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
       instance.devtoolsRawSetupState = setupResult
     }
+    // 把 setup 返回结果变成响应式
     instance.setupState = proxyRefs(setupResult)
     if (__DEV__) {
       exposeSetupStateOnRenderContext(instance)
@@ -696,6 +706,7 @@ function finishComponentSetup(
       if (__DEV__) {
         startMeasure(instance, `compile`)
       }
+      // 运行时编译
       Component.render = compile(Component.template, {
         isCustomElement: instance.appContext.config.isCustomElement,
         delimiters: Component.delimiters
@@ -704,13 +715,14 @@ function finishComponentSetup(
         endMeasure(instance, `compile`)
       }
     }
-
+    // 组件对象的 render 函数赋值给 instance
     instance.render = (Component.render || NOOP) as InternalRenderFunction
 
     // for runtime-compiled render functions using `with` blocks, the render
     // proxy used needs a different `has` handler which is more performant and
     // also only allows a whitelist of globals to fallthrough.
     if (instance.render._rc) {
+      // 对于使用 with 块的运行时编译的渲染函数，使用新的渲染上下文的代理
       instance.withProxy = new Proxy(
         instance.ctx,
         RuntimeCompiledPublicInstanceProxyHandlers
@@ -732,6 +744,7 @@ function finishComponentSetup(
   if (__DEV__ && !Component.render && instance.render === NOOP && !isSSR) {
     /* istanbul ignore if */
     if (!compile && Component.template) {
+      // 只编写了 template 但使用了 runtime-only 的版本
       warn(
         `Component provided template option but ` +
           `runtime compilation is not supported in this build of Vue.` +
@@ -744,6 +757,7 @@ function finishComponentSetup(
                 : ``) /* should not happen */
       )
     } else {
+      // 既没有写 render 函数，也没有写 template 模板
       warn(`Component is missing template or render function.`)
     }
   }
